@@ -8,7 +8,9 @@ import routes from "./routes";
 import authenticated_routes from "./authenticated_routes";
 // import FileRoutes from "./FileRoutes";
 // import "./database/core";
+import connectionDB from "./connection/connection";
 
+connectionDB();
 class App {
   public server: express.Application;
 

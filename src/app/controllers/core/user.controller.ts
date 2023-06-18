@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import generateToken from "../../../services/GenerateToken";
 import { v4 as uuidv4 } from "uuid";
-import User from "../../models/core/User";
+import { User } from "../../models/core/user.model";
 
 class UserController {
   async getList(req: Request, res: Response) {
@@ -49,30 +49,44 @@ class UserController {
 
   async insert(req: Request, res: Response) {
     try {
-      const { name, email, id_user_type, password, photo_filename } = req.body;
+      const {
+        name,
+        email,
+        id_user_type,
+        password,
+        ConfirmPassword,
+        photo_filename,
+      } = req.body;
+      console.log(email);
 
       const uuid = uuidv4();
 
-      const existingUser = await User.findOne({ where: { email } });
-      if (existingUser) {
-        return res.status(409).json({ error: "User already exists" });
-      }
+      const user = await User.findOne({ where: { email } });
+      console.log(user);
 
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      if (user) {
+        return res
+          .status(400)
+          .json({ error: { email: { mgs: "Email já existe" } } });
+      }
+      let passwordHash;
+      if (password && ConfirmPassword) {
+        if (password !== ConfirmPassword) {
+          return res.status(404).json({ msg: "Senhas não coincidem!" });
+        }
+        passwordHash = await bcrypt.hash(password, 10);
+      }
 
       const newUser = await User.create({
         uuid: uuid,
         name,
         email,
-        id_user_type,
-        password_hash: hashedPassword,
-        photo_filename,
+        idUserType: id_user_type,
+        passwordHash: passwordHash,
+        photoFilename: photo_filename,
       });
 
-      const token = generateToken({ id: newUser.id });
-
-      return res.status(201).json({ user: newUser, token });
+      return res.status(201).json({ user: newUser });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: "Server error" });
@@ -86,17 +100,17 @@ class UserController {
     try {
       const user = await User.findOne({ where: { id: Number(id) } });
 
-      const newUpdate = await user?.update({
-        username,
-        name,
-        email,
-        id_user_type,
-        phone,
-        photo_filename,
-      });
-      if (newUpdate) {
-        return res.status(200).json(newUpdate);
-      }
+      // const newUpdate = await user?.update({
+      //   username,
+      //   name,
+      //   email,
+      //   id_user_type,
+      //   phone,
+      //   photo_filename,
+      // });
+      // if (newUpdate) {
+      //   return res.status(200).json(newUpdate);
+      // }
     } catch (err) {
       return res.status(400).json({ error: "Error updating user" });
     }
